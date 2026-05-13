@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GymLog" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>GymLog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --accent: #c8f135;
+      --accent2: #a0d020;
+      --text: #f0f0f0;
+      --muted: #666;
+      --red: #ff4d4d;
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
+      overflow-x: hidden;
+    }
+
+    /* Animated background noise */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 150px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    .app { position: relative; z-index: 1; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-top: 12px;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.6rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .logo span { color: var(--text); }
+
+    .streak-badge {
+      background: var(--surface2);
+      border: 1px solid #2a2a2a;
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .streak-badge .fire { font-size: 1rem; }
+    .streak-count { color: var(--accent); font-weight: 700; font-size: 1rem; }
+
+    /* BIG LOG BUTTON */
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .log-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 40px rgba(200, 241, 53, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .log-btn:active { transform: scale(0.97); box-shadow: 0 0 20px rgba(200, 241, 53, 0.1); }
+
+    .log-btn .btn-icon { font-size: 1.8rem; }
+
+    .log-btn.logged {
+      background: var(--surface2);
+      color: var(--accent);
+      box-shadow: 0 0 0px rgba(200, 241, 53, 0);
+      border: 2px solid var(--accent);
+    }
+
+    .log-btn.loading { opacity: 0.7; pointer-events: none; }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.2);
+      transform: scale(0);
+      animation: ripple-anim 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple-anim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    .log-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* STATUS CARD */
+    .status-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid #1e1e1e;
+      min-height: 64px;
+    }
+
+    .status-icon { font-size: 1.6rem; flex-shrink: 0; }
+
+    .status-text { flex: 1; }
+    .status-title { font-weight: 500; font-size: 0.9rem; }
+    .status-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    /* CALENDAR */
+    .calendar-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid #1e1e1e;
+    }
+
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .cal-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    .cal-nav { display: flex; gap: 8px; }
+
+    .cal-nav button {
+      background: var(--surface2);
+      border: none;
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .cal-nav button:hover { background: #2a2a2a; }
+
+    .cal-days-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--muted);
+      position: relative;
+      cursor: default;
+    }
+
+    .cal-day.this-month { color: var(--text); }
+    .cal-day.today { background: var(--surface2); color: var(--text); font-weight: 600; }
+    .cal-day.gym-day {
+      background: var(--accent);
+      color: #0a0a0a;
+      font-weight: 700;
+    }
+    .cal-day.today.gym-day {
+      background: var(--accent);
+      box-shadow: 0 0 16px rgba(200,241,53,0.5);
+    }
+
+    /* STATS ROW */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      border: 1px solid #1e1e1e;
+    }
+
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* GOOGLE AUTH SECTION */
+    .auth-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      border: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .auth-card h3 { font-size: 1rem; font-weight: 500; }
+    .auth-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+    .google-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      color: #333;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 22px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .google-btn:hover { opacity: 0.9; }
+
+    .google-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .disconnect-btn {
+      background: none;
+      border: 1px solid #333;
+      color: var(--muted);
+      border-radius: 50px;
+      padding: 8px 16px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .disconnect-btn:hover { color: var(--red); border-color: var(--red); }
+
+    /* INSTALL BANNER */
+    .install-banner {
+      background: linear-gradient(135deg, #1a2a00, #1e1e1e);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      border: 1px solid var(--accent2);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .install-banner .ib-icon { font-size: 1.8rem; flex-shrink: 0; }
+
+    .install-banner .ib-text { flex: 1; }
+    .install-banner .ib-title { font-weight: 600; font-size: 0.88rem; color: var(--accent); }
+    .install-banner .ib-sub { font-size: 0.76rem; color: #999; margin-top: 2px; line-height: 1.4; }
+
+    .install-banner .ib-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 50px;
+      padding: 12px 22px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+      border: 1px solid #2a2a2a;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--accent); color: var(--accent); }
+    .toast.error { border-color: var(--red); color: var(--red); }
+
+    /* Pulse animation for logged state */
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(200,241,53,0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(200,241,53,0); }
+      100% { box-shadow: 0 0 0 0 rgba(200,241,53,0); }
+    }
+
+    .log-btn.pulse-success { animation: pulse-ring 0.6s ease-out; }
+
+    /* Fade in */
+    @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .app > * { animation: fadein 0.4s ease both; }
+    .app > *:nth-child(1) { animation-delay: 0s; }
+    .app > *:nth-child(2) { animation-delay: 0.06s; }
+    .app > *:nth-child(3) { animation-delay: 0.12s; }
+    .app > *:nth-child(4) { animation-delay: 0.18s; }
+    .app > *:nth-child(5) { animation-delay: 0.24s; }
+    .app > *:nth-child(6) { animation-delay: 0.3s; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">GYM<span>LOG</span></div>
+    <div class="streak-badge">
+      <span class="fire">🔥</span>
+      <span class="streak-count" id="streakNum">0</span>
+      <span>day streak</span>
+    </div>
+  </header>
+
+  <!-- INSTALL BANNER (shown if not installed) -->
+  <div class="install-banner" id="installBanner">
+    <div class="ib-icon">📲</div>
+    <div class="ib-text">
+      <div class="ib-title">Add to Home Screen</div>
+      <div class="ib-sub">Tap <strong>Share → Add to Home Screen</strong> (iOS) or browser menu (Android)</div>
+    </div>
+    <button class="ib-close" onclick="document.getElementById('installBanner').classList.add('hidden')">✕</button>
+  </div>
+
+  <!-- GOOGLE CALENDAR AUTH -->
+  <div class="auth-card" id="authCard">
+    <div style="font-size:2rem">📅</div>
+    <h3>Connect Google Calendar</h3>
+    <p>Log your gym sessions directly to your Google Calendar with one tap.</p>
+    <button class="google-btn" onclick="connectGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <p style="font-size:0.72rem; color: #444;">Your data stays in your own Google Calendar.</p>
+  </div>
+
+  <!-- CONNECTED STATE (hidden until auth) -->
+  <div id="connectedSection" class="hidden" style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- STATUS CARD -->
+    <div class="status-card" id="statusCard">
+      <div class="status-icon" id="statusIcon">💪</div>
+      <div class="status-text">
+        <div class="status-title" id="statusTitle">Ready to log today's session</div>
+        <div class="status-sub" id="statusSub">Tap the button below to mark your workout</div>
+      </div>
+    </div>
+
+    <!-- LOG BUTTON -->
+    <div class="log-section">
+      <button class="log-btn" id="logBtn" onclick="logGym(event)">
+        <span class="btn-icon">🏋️</span>
+        <span id="logBtnText">WENT TO THE GYM</span>
+      </button>
+      <p class="log-hint" id="logHint">Tap to log today · syncs to Google Calendar</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="statMonth">0</div>
+        <div class="stat-label">This month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statStreak">0</div>
+        <div class="stat-label">Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">All time</div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="calendar-card">
+      <div class="cal-header">
+        <div class="cal-title" id="calMonthLabel">MAY 2025</div>
+        <div class="cal-nav">
+          <button onclick="changeMonth(-1)">‹</button>
+          <button onclick="changeMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="cal-days-header">
+        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <!-- DISCONNECT -->
+    <div style="text-align:center; padding-bottom: 8px;">
+      <button class="disconnect-btn" onclick="disconnect()">Disconnect Google Calendar</button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── CONFIG ─────────────────────────────────────────────────────────────────
+  // Replace with your Google OAuth Client ID from https://console.cloud.google.com
+  // Scopes needed: https://www.googleapis.com/auth/calendar.events
+  const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE';
+  const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+  const CAL_ID = 'primary';
+  const EVENT_TITLE = '🏋️ Went to the gym';
+
+  // ─── STATE ───────────────────────────────────────────────────────────────────
+  let accessToken = localStorage.getItem('gcal_token') || null;
+  let gymDays = JSON.parse(localStorage.getItem('gymDays') || '[]'); // array of "YYYY-MM-DD"
+  let calViewDate = new Date();
+  let todayLogged = false;
+
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  // ─── INIT ────────────────────────────────────────────────────────────────────
+  function init() {
+    // Hide install banner if running as PWA
+    if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('installBanner').classList.add('hidden');
+    }
+
+    if (accessToken) {
+      showConnected();
+      fetchGymEvents();
+    }
+  }
+
+  function showConnected() {
+    document.getElementById('authCard').classList.add('hidden');
+    document.getElementById('connectedSection').classList.remove('hidden');
+    document.getElementById('connectedSection').style.display = 'flex';
+    updateUI();
+  }
+
+  // ─── GOOGLE AUTH ─────────────────────────────────────────────────────────────
+  function connectGoogle() {
+    if (CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+      showSetupInstructions();
+      return;
+    }
+
+    const redirectUri = window.location.href.split('?')[0];
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${CLIENT_ID}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=token` +
+      `&scope=${encodeURIComponent(SCOPES)}` +
+      `&prompt=consent`;
+
+    window.location.href = authUrl;
+  }
+
+  function handleOAuthCallback() {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get('access_token');
+      if (token) {
+        accessToken = token;
+        localStorage.setItem('gcal_token', token);
+        history.replaceState(null, '', window.location.pathname);
+        showConnected();
+        fetchGymEvents();
+        showToast('✅ Connected to Google Calendar!', 'success');
+      }
+    }
+  }
+
+  function disconnect() {
+    accessToken = null;
+    localStorage.removeItem('gcal_token');
+    document.getElementById('authCard').classList.remove('hidden');
+    document.getElementById('connectedSection').classList.add('hidden');
+    showToast('Disconnected from Google Calendar');
+  }
+
+  // ─── CALENDAR API ────────────────────────────────────────────────────────────
+  async function fetchGymEvents() {
+    if (!accessToken) return;
+
+    try {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
+
+      const res = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?` +
+        `timeMin=${start}&timeMax=${end}&q=${encodeURIComponent('Went to the gym')}&maxResults=200&singleEvents=true`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (res.status === 401) {
+        disconnect();
+        showToast('Session expired. Please reconnect.', 'error');
+        return;
+      }
+
+      const data = await res.json();
+      const events = data.items || [];
+
+      gymDays = events.map(e => {
+        const d = e.start.date || e.start.dateTime?.substring(0, 10);
+        return d;
+      }).filter(Boolean);
+
+      localStorage.setItem('gymDays', JSON.stringify(gymDays));
+      updateUI();
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
+  }
+
+  async function createGymEvent() {
+    if (!accessToken) return false;
+
+    const today = new Date();
+    const dateStr = todayStr();
+
+    const event = {
+      summary: EVENT_TITLE,
+      start: { date: dateStr },
+      end: { date: dateStr },
+      colorId: '2', // Sage green
+      description: 'Logged via GymLog app 💪',
+    };
+
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }
+    );
+
+    if (res.status === 401) {
+      disconnect();
+      showToast('Session expired. Please reconnect.', 'error');
+      return false;
+    }
+
+    return res.ok;
+  }
+
+  // ─── LOG GYM ─────────────────────────────────────────────────────────────────
+  async function logGym(e) {
+    const btn = document.getElementById('logBtn');
+    const today = todayStr();
+
+    if (gymDays.includes(today)) {
+      showToast('Already logged for today! 💪', 'success');
+      return;
+    }
+
+    // Ripple effect
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+    ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 700);
+
+    // Loading state
+    btn.classList.add('loading');
+    document.getElementById('logBtnText').textContent = 'LOGGING...';
+
+    const ok = await createGymEvent();
+
+    btn.classList.remove('loading');
+
+    if (ok) {
+      gymDays.push(today);
+      localStorage.setItem('gymDays', JSON.stringify(gymDays));
+      btn.classList.add('pulse-success');
+      setTimeout(() => btn.classList.remove('pulse-success'), 700);
+      showToast('🏋️ Logged to Google Calendar!', 'success');
+      updateUI();
+    } else {
+      document.getElementById('logBtnText').textContent = 'WENT TO THE GYM';
+      showToast('Something went wrong. Try again.', 'error');
+    }
+  }
+
+  // ─── UI UPDATE ───────────────────────────────────────────────────────────────
+  function updateUI() {
+    const today = todayStr();
+    todayLogged = gymDays.includes(today);
+
+    const btn = document.getElementById('logBtn');
+    const btnText = document.getElementById('logBtnText');
+    const hint = document.getElementById('logHint');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusSub = document.getElementById('statusSub');
+
+    if (todayLogged) {
+      btn.classList.add('logged');
+      btnText.textContent = 'ALREADY LOGGED ✓';
+      hint.textContent = 'Great work today! See you tomorrow.';
+      statusIcon.textContent = '✅';
+      statusTitle.textContent = "Today's session logged!";
+      statusSub.textContent = 'It\'s on your Google Calendar · Keep it up';
+    } else {
+      btn.classList.remove('logged');
+      btnText.textContent = 'WENT TO THE GYM';
+      hint.textContent = 'Tap to log today · syncs to Google Calendar';
+      statusIcon.textContent = '💪';
+      statusTitle.textContent = "Ready to log today's session";
+      statusSub.textContent = 'Tap the button below to mark your workout';
+    }
+
+    // Stats
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthCount = gymDays.filter(d => d.startsWith(thisMonth)).length;
+    document.getElementById('statMonth').textContent = monthCount;
+    document.getElementById('statTotal').textContent = gymDays.length;
+
+    const streak = calcStreak();
+    document.getElementById('statStreak').textContent = streak;
+    document.getElementById('streakNum').textContent = streak;
+
+    renderCalendar();
+  }
+
+  function calcStreak() {
+    const sorted = [...gymDays].sort().reverse();
+    if (!sorted.length) return 0;
+
+    let streak = 0;
+    let check = new Date();
+    // Allow today or yesterday as starting point
+    const todayD = todayStr();
+    const yesterdayD = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().substring(0,10); })();
+
+    if (!gymDays.includes(todayD) && !gymDays.includes(yesterdayD)) return 0;
+
+    if (!gymDays.includes(todayD)) check.setDate(check.getDate() - 1);
+
+    while (true) {
+      const ds = check.toISOString().substring(0, 10);
+      if (gymDays.includes(ds)) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      } else break;
+    }
+
+    return streak;
+  }
+
+  // ─── CALENDAR RENDER ─────────────────────────────────────────────────────────
+  function renderCalendar() {
+    const year = calViewDate.getFullYear();
+    const month = calViewDate.getMonth();
+    const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    document.getElementById('calMonthLabel').textContent = `${monthNames[month]} ${year}`;
+
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = todayStr();
+
+    // Leading blanks
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day';
+      grid.appendChild(el);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const el = document.createElement('div');
+      el.className = 'cal-day this-month';
+      if (ds === today) el.classList.add('today');
+      if (gymDays.includes(ds)) el.classList.add('gym-day');
+      el.textContent = d;
+      grid.appendChild(el);
+    }
+  }
+
+  function changeMonth(dir) {
+    calViewDate.setMonth(calViewDate.getMonth() + dir);
+    renderCalendar();
+  }
+
+  // ─── TOAST ───────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ─── SETUP INSTRUCTIONS (when no Client ID set) ───────────────────────────────
+  function showSetupInstructions() {
+    document.getElementById('authCard').innerHTML = `
+      <div style="font-size:2rem">⚙️</div>
+      <h3>Setup Required</h3>
+      <p style="text-align:left; line-height:1.7; font-size:0.82rem; color:#aaa;">
+        To connect Google Calendar, you need a free Google OAuth Client ID:<br><br>
+        1. Go to <strong style="color:#c8f135">console.cloud.google.com</strong><br>
+        2. Create a project → Enable <strong style="color:#c8f135">Google Calendar API</strong><br>
+        3. Credentials → Create OAuth Client ID → Web application<br>
+        4. Add this page's URL as an <strong style="color:#c8f135">Authorized redirect URI</strong><br>
+        5. Replace <code style="color:#c8f135">YOUR_GOOGLE_CLIENT_ID_HERE</code> in the code with your Client ID<br><br>
+        <span style="color:#666">This is a one-time setup. Your data stays 100% in your own Google Calendar.</span>
+      </p>
+    `;
+  }
+
+  // ─── BOOT ────────────────────────────────────────────────────────────────────
+  handleOAuthCallback();
+  init();
+</script>
+
+<!-- PWA Service Worker registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Register inline SW for offline support
+    const swCode = `
+      const CACHE = 'gymlog-v1';
+      self.addEventListener('install', e => {
+        e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+        self.skipWaiting();
+      });
+      self.addEventListener('fetch', e => {
+        if (e.request.url.includes('googleapis.com')) return;
+        e.respondWith(
+          caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+            return res;
+          }))
+        );
+      });
+    `;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>

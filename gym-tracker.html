@@ -8,6 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="GymLog" />
   <meta name="theme-color" content="#0a0a0a" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <title>GymLog</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -838,27 +840,9 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Register inline SW for offline support
-    const swCode = `
-      const CACHE = 'gymlog-v1';
-      self.addEventListener('install', e => {
-        e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
-        self.skipWaiting();
-      });
-      self.addEventListener('fetch', e => {
-        if (e.request.url.includes('googleapis.com')) return;
-        e.respondWith(
-          caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-            const clone = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, clone));
-            return res;
-          }))
-        );
-      });
-    `;
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).catch(() => {});
+    navigator.serviceWorker.register('/gymlog/sw.js')
+      .then(() => console.log('GymLog SW registered'))
+      .catch(err => console.log('SW registration failed:', err));
   });
 }
 </script>
